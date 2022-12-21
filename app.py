@@ -194,6 +194,20 @@ ind_todo_SOURCES = [all_SOURCES.index(i) for i in todo_SOURCES]
 
 
 # Plot Settings
+todo_theme = st.sidebar.selectbox("Theme", ["Light", "Dark"])
+if todo_theme == "Dark":
+    plt.style.use("dark_background")
+    label_linewidth = 0
+    for i in range(NDET):
+        dict_DET[i]['color'] = "#ffffff"      
+
+if todo_theme == "Light":
+    label_linewidth = 2
+    label_color     = "#ffffff"
+    plt.style.use("default")
+    for i in range(NDET):
+        dict_DET[i]['color'] = "#000000"  
+
 st.sidebar.write("Elements")
 
 xlims = np.array([0.4e-10, 1.4e+6])
@@ -213,21 +227,8 @@ with col1:
 with col2:
     label_color = col2.color_picker("Label color", label_color) 
 
-todo_theme = st.sidebar.selectbox("Theme", ["Light", "Dark"])
 
 
-if todo_theme == "Dark":
-    plt.style.use("dark_background")
-    label_linewidth = 0
-    for i in range(NDET):
-        dict_DET[i]['color'] = "#ffffff"      
-
-if todo_theme == "Light":
-    label_linewidth = 2
-    label_color     = "#ffffff"
-    plt.style.use("default")
-    for i in range(NDET):
-        dict_DET[i]['color'] = "#000000"  
 
 
 
@@ -237,7 +238,7 @@ if todo_theme == "Light":
 
 # Advanced settings
 st.sidebar.subheader("Advanced settings")
-todo_type  = st.sidebar.selectbox("", ["Detector", "Source"])
+todo_type  = st.sidebar.selectbox(" ", ["Detector", "Source"])
 # st.markdown(
 #     """
 #     <style>
