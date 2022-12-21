@@ -6,8 +6,10 @@ import streamlit as st
 import numpy as np
 import json
 
-dir_detectors = "data/detectors/"
-dir_sources   = "data/sources/"
+dir_detectors   = "data/detectors/"
+dir_sources     = "data/sources/"
+label_linewidth = 2
+label_color     = "#ffffff"
 
 def hex_to_rgb(value):
     value = value.lstrip('#')
@@ -63,6 +65,29 @@ def gradient_fill(x, y, fill_color=None, ymin=0, ax=None, **kwargs):
 
     ax.autoscale(True)
     return im
+
+
+
+def data2plot(data, plottype):
+    if plottype == 1:
+        x = np.log10(data[:,0])
+        y = np.log10(data[:,1])
+
+    elif plottype == 0:
+        H0 = 3.240779291010696e-18
+        x = np.log10(data[:,0])
+        y = np.log10(2*(np.pi*data[:,1]*x/H0)**2)
+    return x, y 
+
+
+# function toEnergySpec(data) {
+# 	var H0 = 3.240779291010696e-18;
+# 	return data.map(function(val) {
+# 		var f = val[0];
+# 		var hc = val[1];
+# 		return [f, 2*Math.pow(Math.PI*f*hc/H0,2)];
+# 	});
+# }
 
 
 
@@ -147,22 +172,7 @@ st.sidebar.header("🪄 Settings")
 plottypes = ["Characteristic Strain", "Power Spectral Density"]
 def headerlabel(number):
     return "{1}".format(number, plottypes[number-1])
-page = st.sidebar.radio('Select plot type:', [1,0], format_func=headerlabel)
-
-
-# Set x and y limits
-xlims = np.array([0.4e-10, 1.4e+6])
-ylims = np.array([1e-26, 1.1e-12])
-col1, col2= st.sidebar.columns(2)
-
-with col1:
-    xlims[0] = st.number_input(label="$x_{min}$", format="%.1e", value=xlims[0], step=xlims[0]/10)
-    ylims[0] = st.number_input(label="$y_{min}$", format="%.1e", value=ylims[0], step=ylims[0]/10)
-with col2:
-    xlims[1] = st.number_input(label="$x_{max}$", format="%.1e", value=xlims[1], step=xlims[1]/10)
-    ylims[1] = st.number_input(label="$y_{max}$", format="%.1e", value=ylims[1], step=ylims[1]/10)
-
-
+plottype = st.sidebar.radio('Select plot type:', [1,0], format_func=headerlabel)
 
 # Load (only for the first time) the baseline settings
 dict_DET  = load_DET()
@@ -183,21 +193,63 @@ ind_todo_DET     = [all_DET.index(i) for i in todo_DET]
 ind_todo_SOURCES = [all_SOURCES.index(i) for i in todo_SOURCES]
 
 
+# Plot Settings
+st.sidebar.write("Elements")
+
+xlims = np.array([0.4e-10, 1.4e+6])
+ylims = np.array([1e-26, 1.1e-12])
+col1, col2= st.sidebar.columns(2)
+
+with col1:
+    xlims[0] = st.number_input(label="$x_{min}$", format="%.1e", value=xlims[0], step=xlims[0]/10)
+    ylims[0] = st.number_input(label="$y_{min}$", format="%.1e", value=ylims[0], step=ylims[0]/10)
+with col2:
+    xlims[1] = st.number_input(label="$x_{max}$", format="%.1e", value=xlims[1], step=xlims[1]/10)
+    ylims[1] = st.number_input(label="$y_{max}$", format="%.1e", value=ylims[1], step=ylims[1]/10)
+
+col1, col2 = st.sidebar.columns(2)
+with col1:
+    label_linewidth = col1.number_input("Label contur width", 0, 10, label_linewidth)
+with col2:
+    label_color = col2.color_picker("Label color", label_color) 
+
+todo_theme = st.sidebar.selectbox("Theme", ["Light", "Dark"])
+
+
+if todo_theme == "Dark":
+    plt.style.use("dark_background")
+    label_linewidth = 0
+    for i in range(NDET):
+        dict_DET[i]['color'] = "#ffffff"      
+
+if todo_theme == "Light":
+    label_linewidth = 2
+    label_color     = "#ffffff"
+    plt.style.use("default")
+    for i in range(NDET):
+        dict_DET[i]['color'] = "#000000"  
+
+
+
+
+        
+
+
 # Advanced settings
 st.sidebar.subheader("Advanced settings")
-todo_type  = st.sidebar.selectbox("Type", ["Detector", "Source"])
-st.markdown(
-    """
-    <style>
-    [data-baseweb="select"] {
-        margin-top: -40px;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
+todo_type  = st.sidebar.selectbox("", ["Detector", "Source"])
+# st.markdown(
+#     """
+#     <style>
+#     [data-baseweb="select"] {
+#         margin-top: -40px;
+#     }
+#     </style>
+#     """,
+#     unsafe_allow_html=True,
+# )
 if todo_type == "Detector":
-    adv_DET    = st.sidebar.selectbox("", all_DET)
+    adv_DET    = st.sidebar.selectbox("Type", all_DET)
     ind        = all_DET.index(adv_DET)
     col1, col2 = st.sidebar.columns(2)
 
@@ -213,7 +265,7 @@ if todo_type == "Detector":
         dict_DET[ind]['color']   = st.color_picker("Color", value=dict_DET[ind]['color'])
 
 elif todo_type == "Source":
-    adv_SOURCE = st.sidebar.selectbox("", all_SOURCES)
+    adv_SOURCE = st.sidebar.selectbox("Type", all_SOURCES)
     ind        = all_SOURCES.index(adv_SOURCE)
     col1, col2 = st.sidebar.columns(2)
 
@@ -229,9 +281,16 @@ elif todo_type == "Source":
         dict_SOURCES[ind]['color']   = st.color_picker("Color", value=dict_SOURCES[ind]['color'])
 
 
+
+
+
+
+
 if st.sidebar.button('Reset'):
     st.runtime.legacy_caching.clear_cache()
     st.runtime.legacy_caching.clear_cache()
+
+
 
 
 
@@ -241,24 +300,23 @@ fig, ax = plt.subplots(figsize=(9,5),dpi=300)
 for ind in ind_todo_DET:
     # Plot Detectors
     tdet    = dict_DET[ind]
-    tdata = np.log10(np.array(tdet["data"]))
-    x, y  = tdata[:,0], tdata[:,1]
+    x, y = data2plot(np.array(tdet["data"]), plottype)
+
     ax.plot(x, y, color=tdet["color"])
     txt = ax.text(s=tdet["label"], x=np.log10(tdet["label_x"]), y=np.log10(tdet["label_y"]), 
                   fontsize=8, fontweight='bold', color=tdet["color"])
-    txt.set_path_effects([PathEffects.withStroke(linewidth=2, foreground='w')])
+    txt.set_path_effects([PathEffects.withStroke(linewidth=label_linewidth, foreground=label_color)])
 
 for ind in ind_todo_SOURCES:
     # Plot Sources
     tsource = dict_SOURCES[ind]
-    tdata = np.log10(np.array(tsource["data"]))
-    x, y  = tdata[:,0], tdata[:,1]
+    x, y = data2plot(np.array(tsource["data"]), plottype)
 
     gradient_fill(x,y,fill_color=tsource["color"],c=tsource["color"],ymin=np.log10(ylims[0]),ax=ax)
     txt = ax.text(s=tsource["label"], x=np.log10(tsource["label_x"]), y=np.log10(tsource["label_y"]),
                   fontsize=8, ha="left", fontweight='bold',color=tsource["color"])
 
-    txt.set_path_effects([PathEffects.withStroke(linewidth=2, foreground='w')])
+    txt.set_path_effects([PathEffects.withStroke(linewidth=label_linewidth, foreground=label_color)])
 
 ax.set_xlabel("Frequency (Hz)")
 ax.set_ylabel("Characteristic Strain")
@@ -270,13 +328,10 @@ ax.yaxis.set_major_formatter('10$^{{{x:.0f}}}$')
 # ax.set_xscale('log')
 # ax.set_yscale('log')
 
-st.pyplot(fig)
-
-st.write("")
 
 fn = "gwplotter.png"
 plt.tight_layout()
-plt.savefig(fn)
+plt.savefig(fn, transparent=True)
 with open(fn, "rb") as img:
     btn = st.download_button(
         label="Download image",
@@ -284,6 +339,9 @@ with open(fn, "rb") as img:
         file_name=fn,
         mime="image/png"
     )
+st.pyplot(fig)
+
+st.write("")
 
 
 ########################################## REFS
