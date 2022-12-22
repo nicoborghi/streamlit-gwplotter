@@ -319,6 +319,7 @@ for ind in ind_todo_SOURCES:
 
     txt.set_path_effects([PathEffects.withStroke(linewidth=label_linewidth, foreground=label_color)])
 
+ax.grid(True, which='both', ls='dotted', linewidth='0.8', alpha=.8, zorder=0)
 ax.set_xlabel("Frequency (Hz)")
 ax.set_ylabel("Characteristic Strain")
 ax.set_xlim(*np.log10(xlims))
